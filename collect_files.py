@@ -4,7 +4,7 @@ import sys
 import shutil
 import argparse
 
-def get_unique_filename(dst_dir, base_name):
+def get_unique_filename(dst_dir: str, base_name: str) -> str:
     name, ext = os.path.splitext(base_name)
     counter = 1
     new_name = base_name
@@ -13,45 +13,51 @@ def get_unique_filename(dst_dir, base_name):
         counter += 1
     return new_name
 
-def process_directory(src_dir, dst_dir, max_depth=None):
+
+def process_directory(src_dir: str, dst_dir: str, max_depth: int | None = None) -> None:
     src_dir = os.path.normpath(src_dir)
-    for dirpath, _, filenames in os.walk(src_dir):
-        for fname in filenames:
-            src_path = os.path.join(dirpath, fname)
-            if not os.path.isfile(src_path):
-                continue
-            rel_path = os.path.relpath(src_path, src_dir)
+    for root, dirs, files in os.walk(src_dir):
+        rel_path = os.path.relpath(root, src_dir)
+        if rel_path == '.':
+            parts = []
+            depth = 0
+        else:
             parts = rel_path.split(os.sep)
-            dir_parts = parts[:-1]
-            if max_depth is None:
-                target_subdir = []
-            else:
-                if len(dir_parts) <= max_depth:
-                    target_subdir = dir_parts
-                else:
-                    target_subdir = dir_parts[:max_depth]
+            depth = len(parts)
+        if max_depth is not None and depth > max_depth:
+            continue
 
-            final_dir = os.path.join(dst_dir, *target_subdir)
-            os.makedirs(final_dir, exist_ok=True)
+        if max_depth is None:
+            target_dir = dst_dir
+        else:
+            target_dir = os.path.join(dst_dir, *parts)
+        os.makedirs(target_dir, exist_ok=True)
 
-            new_fname = get_unique_filename(final_dir, fname)
-            dst_path = os.path.join(final_dir, new_fname)
-            shutil.copy2(src_path, dst_path)
+        for file in files:
+            src_file = os.path.join(root, file)
+            dst_name = get_unique_filename(target_dir, file)
+            dst_file = os.path.join(target_dir, dst_name)
+            shutil.copy2(src_file, dst_file)
 
-def main():
-    parser = argparse.ArgumentParser(description="Сбор файлов в плоскую структуру или с заданной глубиной")
-    parser.add_argument("input_dir",  help="Исходная директория")
-    parser.add_argument("output_dir", help="Целевая директория")
-    parser.add_argument("--max_depth", type=int, default=None,
-                        help="Максимальная глубина вложенности для копирования (по умолчанию — плоско)")
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description='Собрать файлы из директории в плоскую структуру или с ограниченной глубиной')
+    parser.add_argument('input_dir', help='Путь к исходной директории')
+    parser.add_argument('output_dir', help='Путь к целевой директории')
+    parser.add_argument(
+        '--max_depth', type=int, default=None,
+        help='Максимальная глубина обхода (необязательно)'
+    )
+
     args = parser.parse_args()
 
     if not os.path.isdir(args.input_dir):
         print(f"Ошибка: {args.input_dir} не является директорией", file=sys.stderr)
         sys.exit(2)
-
     os.makedirs(args.output_dir, exist_ok=True)
+
     process_directory(args.input_dir, args.output_dir, args.max_depth)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

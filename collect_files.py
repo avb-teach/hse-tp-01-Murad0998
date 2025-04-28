@@ -8,15 +8,14 @@ def find_existing_files(output_folder: str):
     existing = {}
     for fname in os.listdir(output_folder):
         if os.path.isfile(os.path.join(output_folder, fname)):
-            base = fname.rsplit('.', 1)
-            name = base[0] if len(base) > 1 else fname
-            ext = f'.{base[1]}' if len(base) > 1 else ''
-            parts = name.rsplit('_', 1)
+            base, ext = os.path.splitext(fname)
+            parts = base.rsplit('_', 1)
             if len(parts) > 1 and parts[1].isdigit():
                 num = int(parts[1])
-                existing[f'{parts[0]}{ext}'] = max(existing.get(f'{parts[0]}{ext}', 0), num)
+                original_name = f"{parts[0]}{ext}"
+                existing[original_name] = max(existing.get(original_name, 0), num)
             else:
-                existing[fname] = 1
+                existing[fname] = 0
     return existing
 
 def process_directory(src_dir: str, dst_dir: str, max_depth: int = None):
@@ -34,24 +33,12 @@ def process_directory(src_dir: str, dst_dir: str, max_depth: int = None):
             base_name = os.path.basename(src_path)
             name_parts = os.path.splitext(base_name)
             new_name = base_name
-            counter = 1
-            while True:
-                dest_path = os.path.join(dst_dir, new_name)
-                if not os.path.exists(dest_path):
-                    break
-                if base_name in file_counter:
-                    counter = file_counter[base_name] + 1
-                else:
-                    counter = 1
+            counter = file_counter.get(base_name, 0) + 1
+            while os.path.exists(os.path.join(dst_dir, new_name)):
                 new_name = f"{name_parts[0]}_{counter}{name_parts[1]}"
-                file_counter[base_name] = counter
-            try:
-                shutil.copy2(src_path, dest_path)
-                file_counter[base_name] = counter
-                print(f"Скопирован: {src_path} -> {dest_path}")
-            except Exception as e:
-                print(f"Ошибка при копировании {src_path}: {e}", file=sys.stderr)
-                sys.exit(1)
+                counter += 1
+            shutil.copy2(src_path, os.path.join(dst_dir, new_name))
+            file_counter[base_name] = counter - 1
 
 def main():
     parser = argparse.ArgumentParser(description="Сбор файлов в плоскую структуру")

@@ -2,6 +2,7 @@
 import os
 import sys
 import shutil
+import argparse
 
 def find_existing_files(output_folder: str):
     existing = {}
@@ -50,30 +51,22 @@ def process_directory(src_dir: str, dst_dir: str, max_depth: int = None):
                 print(f"Скопирован: {src_path} -> {dest_path}")
             except Exception as e:
                 print(f"Ошибка при копировании {src_path}: {e}", file=sys.stderr)
+                sys.exit(1)
 
 def main():
-    max_depth = None
-    if len(sys.argv) == 5 and sys.argv[1] == "--max_depth":
-        try:
-            max_depth = int(sys.argv[2])
-            src = sys.argv[3]
-            dst = sys.argv[4]
-        except ValueError:
-            print("Ошибка: --max_depth должен быть числом")
-            sys.exit(1)
-    elif len(sys.argv) == 3:
-        src = sys.argv[1]
-        dst = sys.argv[2]
-    else:
-        print("Использование: ./collect_files.sh [--max_depth N] исходная_директория целевая_директория")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description="Сбор файлов в плоскую структуру")
+    parser.add_argument("input_dir", help="Исходная директория")
+    parser.add_argument("output_dir", help="Целевая директория")
+    parser.add_argument("--max_depth", type=int, help="Максимальная глубина обхода", default=None)
     
-    if not os.path.isdir(src):
-        print(f"Ошибка: {src} не является директорией", file=sys.stderr)
+    args = parser.parse_args()
+    
+    if not os.path.isdir(args.input_dir):
+        print(f"Ошибка: {args.input_dir} не является директорией", file=sys.stderr)
         sys.exit(2)
     
-    os.makedirs(dst, exist_ok=True)
-    process_directory(src, dst, max_depth)
+    os.makedirs(args.output_dir, exist_ok=True)
+    process_directory(args.input_dir, args.output_dir, args.max_depth)
 
 if __name__ == "__main__":
     main()

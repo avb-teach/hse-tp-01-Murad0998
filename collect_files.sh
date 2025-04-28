@@ -1,8 +1,8 @@
 #!/bin/bash
 
 if [ $# -ne 2 ]; then
-    echo "Нужно 2 аргумента" >&2
-    echo "Использовались: $0 <input_dir> <output_dir>" >&2
+    echo "Error: Exactly two arguments required" >&2
+    echo "Usage: $0 <input_dir> <output_dir>" >&2
     exit 1
 fi
 
@@ -10,12 +10,12 @@ input_dir="$1"
 output_dir="$2"
 
 if [ ! -d "$input_dir" ]; then
-    echo "Нет директории" >&2
+    echo "Error: Input directory does not exist" >&2
     exit 2
 fi
 
 mkdir -p "$output_dir" || {
-    echo "Ошибка вывода" >&2
+    echo "Error: Failed to create output directory" >&2
     exit 3
 }
 

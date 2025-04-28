@@ -9,7 +9,7 @@ def get_unique_filename(dst_dir, base_name):
     counter = 1
     new_name = base_name
     while os.path.exists(os.path.join(dst_dir, new_name)):
-        new_name = f"{name}_{counter}{ext}"
+        new_name = f"{name}{counter}{ext}"
         counter += 1
     return new_name
 

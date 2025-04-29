@@ -4,12 +4,15 @@ import sys
 import shutil
 import argparse
 
-def generate_unique_name(dst_dir: str, filename: str) -> str:
+def generate_unique_name(aimdir: str, filename: str) -> str:
     base_name, ext = os.path.splitext(filename)
-    counter = 1
+    counter=1
     while True:
-        new_name = f"{base_name}_{counter}{ext}" if counter > 1 else filename
-        full_path = os.path.join(dst_dir, new_name)
+        if (counter>1):
+            new_name = f"{base_name}_{counter}{ext}"
+        else:
+            new_name = filename
+        full_path = os.path.join(aimdir, new_name)
         if not os.path.exists(full_path):
             return new_name
         counter += 1
@@ -41,7 +44,7 @@ def copy_files(src_root: str, dst_root: str, max_depth: int | None):
             shutil.copy2(src_file, dst_file)
 
 def main():
-    parser = argparse.ArgumentParser(description='Копирование файлов с сохранением структуры до указанной глубины')
+    parser = argparse.ArgumentParser()
     parser.add_argument('input_dir', help='Исходная директория')
     parser.add_argument('output_dir', help='Целевая директория')
     parser.add_argument('--max_depth', type=int, help='Максимальная глубина вложенности', default=None)

@@ -4,56 +4,60 @@ import sys
 import shutil
 import argparse
 
-def generate_unique_name(aimdir: str, filename: str) -> str:
-    base_name, ext = os.path.splitext(filename)
-    counter=1
+def create_unique_filename(folder: str, original: str) -> str:
+    main_part, suffix = os.path.splitext(original)
+    num = 1
+    
     while True:
-        if (counter>1):
-            new_name = f"{base_name}_{counter}{ext}"
+        if num > 1:
+            result_name = f"{main_part}__{num}{suffix}"
         else:
-            new_name = filename
-        full_path = os.path.join(aimdir, new_name)
-        if not os.path.exists(full_path):
-            return new_name
-        counter += 1
+            result_name = original
+            
+        check_path = os.path.join(folder, result_name)
+        if not os.path.isfile(check_path):
+            return result_name
+        num += 1
 
-def copy_files(src_root: str, dst_root: str, max_depth: int | None):
-    for root, _, files in os.walk(src_root):
-        rel_path = os.path.relpath(root, src_root)
-        if rel_path != '.':
-            current_depth = rel_path.count(os.sep) + 1
+def process_hierarchy(source: str, dest: str, limit: int | None):
+    for cur_dir, _, items in os.walk(source):
+        relative = os.path.relpath(cur_dir, source)
+        if relative == '.':
+            level = 0
         else:
-            current_depth = 0
-        if max_depth is not None and current_depth > max_depth:
+            level = relative.count(os.path.sep) + 1
+            
+        if limit is not None and level > limit:
             continue
 
-        if max_depth is not None:
-            path_parts = rel_path.split(os.sep)[:max_depth]
-        else:
-            if rel_path != '.':
-                path_parts = rel_path.split(os.sep)
-            else:
-                path_parts = []
+        path_segments = []
+        if relative != '.':
+            path_segments = relative.split(os.path.sep)
+            if limit:
+                path_segments = path_segments[:limit]
         
-        target_dir = os.path.join(dst_root, *path_parts)
-        os.makedirs(target_dir, exist_ok=True)
+        new_location = os.path.join(dest, *path_segments)
+        os.makedirs(new_location, exist_ok=True)
+        for item in items:
+            origin = os.path.join(cur_dir, item)
+            unique_name = create_unique_filename(new_location, item)
+            destination = os.path.join(new_location, unique_name)
+            shutil.copy2(origin, destination)
 
-        for file in files:
-            src_file = os.path.join(root, file)
-            dst_file = os.path.join(target_dir, generate_unique_name(target_dir, file))
-            shutil.copy2(src_file, dst_file)
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('input_dir', help='Исходная директория')
-    parser.add_argument('output_dir', help='Целевая директория')
-    parser.add_argument('--max_depth', type=int, help='Максимальная глубина вложенности', default=None)
-    
-    args = parser.parse_args()
-    if not os.path.isdir(args.input_dir):
+def run():
+    cli_parser = argparse.ArgumentParser()
+    cli_parser.add_argument('src', help='Папка-источник')
+    cli_parser.add_argument('dst', help='Папка-приемник')
+    cli_parser.add_argument('--max_depth', type=int, help='Ограничение по глубине (включительно)', default=None)
+    params = cli_parser.parse_args()
+    if not os.path.isdir(params.src):
         sys.exit(1)
-    os.makedirs(args.output_dir, exist_ok=True)
-    copy_files(args.input_dir, args.output_dir, args.max_depth)
+        
+    try:
+        os.makedirs(params.dst, exist_ok=True)
+        process_hierarchy(params.src, params.dst, params.max_depth)
+    except OSError:
+        sys.exit(2)
 
 if __name__ == '__main__':
-    main()
+    run()

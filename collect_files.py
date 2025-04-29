@@ -15,28 +15,29 @@ def get_unique_filename(dst_dir: str, base_name: str) -> str:
             return new_name
         counter += 1
 
-def process_directory(src_dir: str, dst_dir: str, max_depth: int | None = None) -> None:
+def process_directory(src_dir: str, dst_dir: str, max_depth: int|None = None):
     src_dir = os.path.normpath(src_dir)
     for root, _, files in os.walk(src_dir):
-        rel_path = os.path.relpath(root, src_dir)
-        current_depth = rel_path.count(os.sep) + 1 if rel_path != '.' else 0
-        
-        if max_depth is not None and current_depth > max_depth:
-            continue
+        rel = os.path.relpath(root, src_dir)
+        parts = [] if rel == '.' else rel.split(os.sep)
+        depth = len(parts)
 
-        if max_depth is not None:
-            parts = rel_path.split(os.sep)[:max_depth]
-            target_dir = os.path.join(dst_dir, *parts)
+        if max_depth is None:
+            target_subdirs = []
         else:
-            target_dir = dst_dir
-            
-        os.makedirs(target_dir, exist_ok=True)
+            if depth <= max_depth:
+                target_subdirs = parts
+            else:
+                target_subdirs = parts[:max_depth]
 
-        for file in files:
-            src_file = os.path.join(root, file)
-            dst_name = get_unique_filename(target_dir, file)
-            dst_file = os.path.join(target_dir, dst_name)
-            shutil.copy2(src_file, dst_file)
+        dst_path_dir = os.path.join(dst_dir, *target_subdirs)
+        os.makedirs(dst_path_dir, exist_ok=True)
+
+        for fname in files:
+            new_fname = get_unique_filename(dst_path_dir, fname)
+            shutil.copy2(os.path.join(root, fname),
+                         os.path.join(dst_path_dir, new_fname))
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
